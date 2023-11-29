@@ -1,0 +1,61 @@
+use crossterm::{
+    event::{self, KeyCode, KeyEventKind},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use ratatui::{
+    prelude::{CrosstermBackend, Stylize, Terminal},
+    widgets::Paragraph,
+};
+use std::{
+    env,
+    io::{stdout, Result},
+};
+
+fn main() -> Result<()> {
+    enable_raw_mode()?;
+    stdout().execute(EnterAlternateScreen)?;
+
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    terminal.clear()?;
+
+    let mut counter = 0;
+
+    loop {
+        terminal.draw(|frame| {
+            let area = frame.size();
+            frame.render_widget(
+                Paragraph::new(format!(
+                    "Counter: {counter}; in {}",
+                    env::current_dir().unwrap().as_path().to_str().unwrap()
+                ))
+                .white()
+                .on_blue(),
+                area,
+            )
+        })?;
+
+        if event::poll(std::time::Duration::from_millis(250))? {
+            if let event::Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::Char('q') => {
+                            break;
+                        }
+                        KeyCode::Char('j') => {
+                            counter += 1;
+                        }
+                        KeyCode::Char('k') => {
+                            counter -= 1;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    stdout().execute(LeaveAlternateScreen)?;
+    disable_raw_mode()?;
+    Ok(())
+}
